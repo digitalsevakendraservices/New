@@ -49,7 +49,7 @@
 
                 <div class="border border-gray-200 bg-gray-50 rounded-xl p-5 flex flex-col items-center mb-5">
                     <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-100 mb-4">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi%3A%2F%2Fpay%3Fpa%3Dpaytmqr65y99n%40ptys%26pn%3DScriptMastery%26am%3D1.00%26cu%3DINR" alt="QR Code" class="h-32 w-32">
+                        <img src="<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi%3A%2F%2Fpay%3Fpa%3Dpaytmqr2810050501011jbac2uqmffx%40paytm%26pn%3DScriptMastery%26am%3D1.00%26cu%3DINR" alt="QR Code" class="h-32 w-32">" alt="QR Code" class="h-32 w-32">
                     </div>
                     
                     <p class="text-xs text-gray-500 mb-3 font-medium">Supported UPI Apps</p>
