@@ -1,0 +1,87 @@
+// 1. Replace with your Firebase Project ID
+const FIREBASE_PROJECT_ID = "payment-auto-verification"; 
+// 2. Replace with your Firebase Web API Key (Found in Project Settings)
+const FIREBASE_API_KEY = "AIzaSyAiArYTQOga0bet1GsR6Mj4kB_QelsOrQs";
+
+function checkPaytmEmails() {
+  // 1. Get all pending orders from Firestore
+  const queryUrl = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery?key=${FIREBASE_API_KEY}`;
+  
+  const queryPayload = {
+    "structuredQuery": {
+      "from": [{"collectionId": "purchases"}],
+      "where": {
+        "fieldFilter": {
+          "field": {"fieldPath": "status"},
+          "op": "EQUAL",
+          "value": {"stringValue": "pending"}
+        }
+      }
+    }
+  };
+  
+  const queryOptions = {
+    'method': 'post',
+    'contentType': 'application/json',
+    'payload': JSON.stringify(queryPayload),
+    'muteHttpExceptions': true
+  };
+  
+  const queryResponse = UrlFetchApp.fetch(queryUrl, queryOptions);
+  const queryData = JSON.parse(queryResponse.getContentText());
+  
+  // If no pending orders, we can stop here
+  if (!queryData || queryData.length === 0 || !queryData[0].document) {
+    Logger.log("No pending orders found in Firestore.");
+    return;
+  }
+  
+  Logger.log("Found " + queryData.length + " pending order(s). Checking emails...");
+  
+  // 2. For each pending order, search Gmail for its specific UTR/Order ID
+  for (let i = 0; i < queryData.length; i++) {
+    if (!queryData[i].document || !queryData[i].document.fields || !queryData[i].document.fields.utr) {
+       continue;
+    }
+    
+    const utrNumber = queryData[i].document.fields.utr.stringValue;
+    const docName = queryData[i].document.name;
+    
+    // Search Gmail for this specific UTR/Order ID (from Paytm)
+    // This searches ALL emails, whether read or unread, so late entries work perfectly!
+    const searchQuery = `from:no-reply@paytm.com"${utrNumber}"`;
+    const threads = GmailApp.search(searchQuery, 0, 1); // We just need to know if at least 1 exists
+    
+    if (threads.length > 0) {
+      Logger.log("Found matching payment email for UTR: " + utrNumber);
+      
+      // 3. Update the status to 'approved'
+      const updateUrl = `https://firestore.googleapis.com/v1/${docName}?updateMask.fieldPaths=status&key=${FIREBASE_API_KEY}`;
+      
+      const updatePayload = {
+        "fields": {
+          "status": {
+            "stringValue": "approved"
+          }
+        }
+      };
+      
+      const updateOptions = {
+        'method': 'patch',
+        'contentType': 'application/json',
+        'payload': JSON.stringify(updatePayload),
+        'muteHttpExceptions': true
+      };
+      
+      const updateResponse = UrlFetchApp.fetch(updateUrl, updateOptions);
+      
+      if (updateResponse.getResponseCode() === 200) {
+        Logger.log("Successfully approved order for UTR: " + utrNumber);
+      } else {
+        Logger.log("Failed to update Firestore: " + updateResponse.getContentText());
+      }
+    } else {
+      Logger.log("No matching email found yet for UTR: " + utrNumber);
+    }
+  }
+}
